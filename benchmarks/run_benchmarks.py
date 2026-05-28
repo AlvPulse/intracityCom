@@ -5,9 +5,15 @@ from experiments.runner import ExperimentRunner
 
 def run_all_benchmarks():
     configs = [
-        {"name": "Stage_A_Greedy", "num_elements": 16, "noise_dbm": -100, "planner": "greedy"},
-        {"name": "Stage_A_Exhaustive", "num_elements": 16, "noise_dbm": -100, "planner": "exhaustive"},
-        {"name": "Stage_B_Greedy_LowSNR", "num_elements": 32, "noise_dbm": -90, "path_loss_db": 85, "planner": "greedy"}
+        {"name": "Stage_A_Exhaustive_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "exhaustive", "fading_type": "los"},
+        {"name": "Stage_A_Greedy_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "greedy", "fading_type": "los"},
+        {"name": "Stage_A_Hierarchical_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "los"},
+
+        {"name": "Stage_B_Hierarchical_5km_Rician", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
+        {"name": "Stage_B_Greedy_5km_Rician", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "greedy", "fading_type": "rician"},
+
+        {"name": "Stage_C_Hierarchical_20km_LowSNR_Quantized", "num_elements": 64, "noise_dbm": -95, "distance_m": 20000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rayleigh", "quantization_bits": 4},
+        {"name": "Stage_C_Random_20km_LowSNR_Quantized", "num_elements": 64, "noise_dbm": -95, "distance_m": 20000, "tx_power_dbm": 10, "planner": "random", "fading_type": "rayleigh", "quantization_bits": 4}
     ]
 
     all_results = []

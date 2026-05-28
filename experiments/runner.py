@@ -6,7 +6,8 @@ from arrays.models import UniformLinearArray
 from beams.synthesis import BeamSynthesizer
 from sensing.measurements import MeasurementModel
 from inference.belief import GridBelief, BayesianUpdater
-from planners.adaptive import ExhaustiveSweepPlanner, GreedyEntropyPlanner
+from planners.adaptive import ExhaustiveSweepPlanner, GreedyEntropyPlanner, RandomProbingPlanner, HierarchicalNarrowingPlanner
+from utils.propagation import friis_path_loss_linear, friis_path_loss_db
 
 class ExperimentRunner:
     def __init__(self, config: dict):
@@ -25,9 +26,17 @@ class ExperimentRunner:
         noise_lin = 10**(noise_dbm/10)
 
         tx_power = self.config.get('tx_power_dbm', 10)
-        path_loss = self.config.get('path_loss_db', 70)
+
+        # Calculate Path Loss dynamically via Friis or override with hardcoded value
+        if 'distance_m' in self.config:
+            distance_m = self.config['distance_m']
+            pl_lin = friis_path_loss_linear(distance_m, ula.wavelength)
+            path_loss = 10 * np.log10(pl_lin)
+        else:
+            path_loss = self.config.get('path_loss_db', 70)
+            pl_lin = 10**(path_loss/10)
+
         tx_lin = 10**(tx_power/10)
-        pl_lin = 10**(path_loss/10)
 
         model = MeasurementModel(ula, noise_power_dbm=noise_dbm)
         updater = BayesianUpdater(ula, noise_lin)
@@ -39,12 +48,17 @@ class ExperimentRunner:
         if strategy == 'exhaustive':
             candidates = np.linspace(-90, 90, 31)
             planner = ExhaustiveSweepPlanner(candidates)
+        elif strategy == 'random':
+            planner = RandomProbingPlanner((-90, 90))
+        elif strategy == 'hierarchical':
+            planner = HierarchicalNarrowingPlanner((-90, 90))
         else:
             candidates = np.linspace(-90, 90, 31)
             planner = GreedyEntropyPlanner(candidates, updater, ula, tx_lin, pl_lin, angles)
 
         max_probes = self.config.get('max_probes', 50)
         entropy_thresh = self.config.get('entropy_threshold', 1.0)
+        quantization_bits = self.config.get('quantization_bits', 0)
 
         probes_used = 0
         entropies = [belief.get_entropy()]
@@ -55,10 +69,21 @@ class ExperimentRunner:
                 locked = True
                 break
 
-            b_type, ang, _ = planner.get_next_beam(belief.probs)
-            w = synth.synthesize_pencil_beam(ang)
+            b_type, center, width = planner.get_next_beam(belief.probs, angles)
 
-            meas = model.measure(true_angle, w, tx_power, path_loss, 'los')
+            # Synthesize appropriate beam
+            if b_type == 'pencil':
+                w = synth.synthesize_pencil_beam(center)
+            elif b_type == 'sector':
+                w = synth.synthesize_sector_beam_ls(center - width/2, center + width/2)
+            else:
+                w = synth.synthesize_pencil_beam(center)
+
+            # Apply Phase Quantization if configured
+            if quantization_bits > 0:
+                w = ula.apply_phase_quantization(w, bits=quantization_bits)
+
+            meas = model.measure(true_angle, w, tx_power, path_loss, fading_type=self.config.get('fading_type', 'los'))
             likelihoods = updater.compute_likelihood(meas["measured_power"], w, angles, tx_lin, pl_lin)
             belief.update(likelihoods)
 

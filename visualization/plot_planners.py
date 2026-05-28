@@ -34,7 +34,7 @@ def simulate_adaptive_probing():
     probe_angles = []
 
     for i in range(15):
-        b_type, ang, _ = planner.get_next_beam(belief.probs)
+        b_type, ang, _ = planner.get_next_beam(belief.probs, angles)
         probe_angles.append(ang)
 
         w = synth.synthesize_pencil_beam(ang)
