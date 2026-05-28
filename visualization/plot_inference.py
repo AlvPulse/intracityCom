@@ -5,6 +5,7 @@ from arrays.models import UniformLinearArray
 from beams.synthesis import BeamSynthesizer
 from inference.belief import GridBelief, BayesianUpdater
 from sensing.measurements import MeasurementModel
+from utils.propagation import dbm_to_linear
 
 def plot_belief_evolution():
     ula = UniformLinearArray(num_elements=16)
@@ -14,29 +15,27 @@ def plot_belief_evolution():
     belief = GridBelief(angles)
 
     noise_dbm = -100
-    noise_lin = 10**(noise_dbm/10)
+    noise_watts = dbm_to_linear(noise_dbm)
 
-    updater = BayesianUpdater(ula, noise_lin)
+    updater = BayesianUpdater(ula, noise_watts)
     model = MeasurementModel(ula, noise_power_dbm=noise_dbm)
 
-    tx_power = 10
-    path_loss = 70
-    tx_lin = 10**(tx_power/10)
-    pl_lin = 10**(path_loss/10)
+    tx_power_dbm = 10
+    tx_watts = dbm_to_linear(tx_power_dbm)
+    distance_m = 10.0
 
     true_angle = 20.0
 
     plt.figure(figsize=(10, 6))
     plt.plot(angles, belief.probs, label="Prior", linestyle='--')
 
-    # Probes: sweep 3 different angles
     probes = [0.0, 15.0, 20.0]
 
     for i, probe_ang in enumerate(probes):
         w = synth.synthesize_pencil_beam(probe_ang)
-        meas = model.measure(true_angle, w, tx_power, path_loss, 'los')
+        meas = model.measure(true_angle, w, tx_power_dbm, distance_m, 'los')
 
-        likelihoods = updater.compute_likelihood(meas["measured_power"], w, angles, tx_lin, pl_lin)
+        likelihoods = updater.compute_likelihood(meas["measured_power_watts"], w, angles, tx_watts, distance_m)
         belief.update(likelihoods)
 
         plt.plot(angles, belief.probs, label=f"Post Probe {i+1} (Steer {probe_ang}°)")

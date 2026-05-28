@@ -6,6 +6,7 @@ from beams.synthesis import BeamSynthesizer
 from inference.belief import GridBelief, BayesianUpdater
 from sensing.measurements import MeasurementModel
 from planners.adaptive import GreedyEntropyPlanner
+from utils.propagation import dbm_to_linear, friis_path_loss_linear
 
 def simulate_adaptive_probing():
     ula = UniformLinearArray(num_elements=16)
@@ -15,20 +16,20 @@ def simulate_adaptive_probing():
     belief = GridBelief(angles)
 
     noise_dbm = -100
-    noise_lin = 10**(noise_dbm/10)
+    noise_watts = dbm_to_linear(noise_dbm)
 
-    updater = BayesianUpdater(ula, noise_lin)
+    updater = BayesianUpdater(ula, noise_watts)
     model = MeasurementModel(ula, noise_power_dbm=noise_dbm)
 
-    tx_power = 10
-    path_loss = 70
-    tx_lin = 10**(tx_power/10)
-    pl_lin = 10**(path_loss/10)
+    tx_power_dbm = 10
+    tx_watts = dbm_to_linear(tx_power_dbm)
+    distance_m = 10.0
+    attenuation = friis_path_loss_linear(distance_m, ula.wavelength)
 
     true_angle = 45.0
 
     candidates = np.linspace(-90, 90, 31)
-    planner = GreedyEntropyPlanner(candidates, updater, ula, tx_lin, pl_lin, angles)
+    planner = GreedyEntropyPlanner(candidates, updater, ula, tx_watts, 1.0/attenuation, angles)
 
     entropies = [belief.get_entropy()]
     probe_angles = []
@@ -38,9 +39,9 @@ def simulate_adaptive_probing():
         probe_angles.append(ang)
 
         w = synth.synthesize_pencil_beam(ang)
-        meas = model.measure(true_angle, w, tx_power, path_loss, 'los')
+        meas = model.measure(true_angle, w, tx_power_dbm, distance_m, 'los')
 
-        likelihoods = updater.compute_likelihood(meas["measured_power"], w, angles, tx_lin, pl_lin)
+        likelihoods = updater.compute_likelihood(meas["measured_power_watts"], w, angles, tx_watts, distance_m)
         belief.update(likelihoods)
 
         entropies.append(belief.get_entropy())

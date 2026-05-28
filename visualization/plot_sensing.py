@@ -16,7 +16,7 @@ def plot_snr_distribution():
     snrs_los = []
 
     for ang in angles:
-        meas = model.measure(ang, w, tx_power_dbm=10, path_loss_db=80, fading_type='los')
+        meas = model.measure(ang, w, tx_power_dbm=10, distance_m=100.0, fading_type='los')
         snrs_los.append(meas['snr_db'])
 
     plt.figure(figsize=(8,5))

@@ -5,15 +5,20 @@ from experiments.runner import ExperimentRunner
 
 def run_all_benchmarks():
     configs = [
-        {"name": "Stage_A_Exhaustive_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "exhaustive", "fading_type": "los"},
-        {"name": "Stage_A_Greedy_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "greedy", "fading_type": "los"},
-        {"name": "Stage_A_Hierarchical_1km", "num_elements": 16, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "los"},
+        # A. Sanity Observability Baseline (Should be 100% perfectly locking)
+        {"name": "Sanity_HighSNR_LOS", "num_elements": 64, "noise_dbm": -100, "distance_m": 10, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "los"},
 
-        {"name": "Stage_B_Hierarchical_5km_Rician", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
-        {"name": "Stage_B_Greedy_5km_Rician", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "greedy", "fading_type": "rician"},
+        # B. Distance Sweeps (Phase Transition Study)
+        {"name": "Sweep_1km", "num_elements": 32, "noise_dbm": -100, "distance_m": 1000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
+        {"name": "Sweep_5km", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
+        {"name": "Sweep_10km", "num_elements": 32, "noise_dbm": -100, "distance_m": 10000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
+        {"name": "Sweep_20km", "num_elements": 32, "noise_dbm": -100, "distance_m": 20000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
+        {"name": "Sweep_50km", "num_elements": 32, "noise_dbm": -100, "distance_m": 50000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rician"},
 
-        {"name": "Stage_C_Hierarchical_20km_LowSNR_Quantized", "num_elements": 64, "noise_dbm": -95, "distance_m": 20000, "tx_power_dbm": 10, "planner": "hierarchical", "fading_type": "rayleigh", "quantization_bits": 4},
-        {"name": "Stage_C_Random_20km_LowSNR_Quantized", "num_elements": 64, "noise_dbm": -95, "distance_m": 20000, "tx_power_dbm": 10, "planner": "random", "fading_type": "rayleigh", "quantization_bits": 4}
+        # C. Planner comparisons at medium difficulty
+        {"name": "Planner_Exhaustive_5km", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "exhaustive", "fading_type": "rician"},
+        {"name": "Planner_Greedy_5km", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "greedy", "fading_type": "rician"},
+        {"name": "Planner_Random_5km", "num_elements": 32, "noise_dbm": -100, "distance_m": 5000, "tx_power_dbm": 10, "planner": "random", "fading_type": "rician"}
     ]
 
     all_results = []
@@ -31,7 +36,7 @@ def run_all_benchmarks():
 
     os.makedirs("reports", exist_ok=True)
     df.to_csv("reports/benchmark_results.csv", index=False)
-    print("\nBenchmark Results:")
+    print("\nBenchmark Results (Observability Phase Transition):")
     print(df.to_markdown(index=False))
 
 if __name__ == "__main__":
